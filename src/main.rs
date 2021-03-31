@@ -17,7 +17,7 @@ fn main() {
         window.set_title("Rustcord");
         window.set_default_size(350, 70);
 
-        let button = Button::new_with_label("Click me!");
+        let button = Button::with_label("Click me!");
         button.connect_clicked(|_| {
             println!("Clicked!");
         });

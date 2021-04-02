@@ -1,30 +1,9 @@
-extern crate gtk;
-extern crate gio;
-
-use gtk::prelude::*;
-use gio::prelude::*;
-
-use gtk::{Application, ApplicationWindow, Button};
+use fltk::{app, window::*};
 
 fn main() {
-    let application = Application::new(
-        Some("com.github.gtk-rs.examples.basic"),
-        Default::default(),
-    ).expect("failed to initialize GTK application");
-
-    application.connect_activate(|app| {
-        let window = ApplicationWindow::new(app);
-        window.set_title("Rustcord");
-        window.set_default_size(350, 70);
-
-        let button = Button::with_label("Click me!");
-        button.connect_clicked(|_| {
-            println!("Clicked!");
-        });
-        window.add(&button);
-
-        window.show_all();
-    });
-
-    application.run(&[]);
+    let app = app::App::default();
+    let mut wind = Window::new(100, 100, 400, 300, "Rustcord");
+    wind.end();
+    wind.show();
+    app.run().unwrap();
 }

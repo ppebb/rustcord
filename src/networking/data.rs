@@ -2,6 +2,8 @@ use serde_json::Value;
 use serde_repr::*;
 use serde::{Serialize, Deserialize};
 
+// TODO: Maybe convert ids from Strings to a custom Snowflake type
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GatewayPayload {
     pub op: GatewayOpCodes,
@@ -48,20 +50,37 @@ pub enum GatewayOpCodes {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserInfo {
+    /// the user's id
+    pub id: String,
+    /// the user's username, not unique across the platform
     pub username: String,
-    public_flags: i32,
-    pub id: String, // User id
-    pub discriminator: String, // Account#3106, the 3106 is the discriminator
-    pub avatar: String, // The avatar id of the account
+    /// the user's 4-digit discord-tag
+    pub discriminator: String,
+    /// the user's avatar hash
+    pub avatar: Option<String>,
+    /// whether the user belongs to an OAuth2 application
+    pub bot: Option<bool>,
+    /// whether the user is an Official Discord System user (part of the urgent message system)
+    pub system: Option<bool>,
+    /// whether the user has two factor enabled on their account
+    mfa_enabled: Option<bool>,
+    /// the user's chosen language option
+    locale: Option<String>,
+    /// whether the email on this account has been verified
     verified: Option<bool>,
-    premium_type: Option<i32>,
+    /// the user's email
+    pub email: Option<String>,
+    /// the flags on a user's account
+    pub flags: Option<UserFlags>,
+    /// the type of Nitro subscription on a user's account
+    /// 0 is None, 1 is Nitro Classic, 2 is Nitro
+    pub premium_type: Option<u8>,
+    /// the public flags on a user's account
+    pub public_flags: Option<UserFlags>,
     premium: Option<bool>,
     phone: Option<String>,
     nsfw_allowed: Option<bool>,
     mobile: Option<bool>,
-    mfa_allowed: Option<bool>,
-    flags: Option<i32>,
-    pub email: Option<String>,
     desktop: Option<bool>
 }
 
@@ -172,7 +191,7 @@ pub struct UserRelationship {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateChannelEntry {
     #[serde(rename="type")]
-    channel_type: i32,
+    channel_type: ChannelTypes,
     recipient_ids: Vec<String>,
     last_message_id: String,
     id: String
@@ -180,29 +199,326 @@ pub struct PrivateChannelEntry {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GuildInfo {
-    description: Option<String>,
-    max_members: u32,
-    afk_channels_id: Option<String>,
-    roles: Vec<RoleInfo>,
-    lazy: bool,
+    /// guild id
+    pub id: String,
+    /// guild name (2-100 characters, excluding trailing and leading whitespace)
+    pub name: String,
+    /// icon hash
+    pub icon: Option<String>,
+    /// icon hash, returned when in the template object
+    pub icon_hash: Option<String>,
+    /// splash hash
+    pub splash: Option<String>,
+    /// discovery splash hash; only present for guilds with the "DISCOVERABLE" feature
+    discovery_splash: Option<String>,
+    /// true if the user is the owner of the guild
+    pub owner: Option<bool>,
+    /// id of owner
+    pub owner_id: String,
+    /// total permissions for the user in the guild (excludes overrides)
+    permissions: Option<String>,
+    /// voice region id for the guild
+    pub region: String,
+    /// id of afk channel
+    afk_channel_id: Option<String>,
+    /// afk timeout in seconds
+    afk_timeout: i32,
+    /// true if the server widget is enabled
+    widget_enabled: Option<bool>,
+    /// the channel id that the widget will generate an invite to, or null if set to no invite
+    widget_channel_id: Option<String>,
+    /// verification level required for the guild
+    verification_level: VerificationLevel,
+    /// default message notifications level <br/>
+    /// `ALL_MESSAGES` = 0, `ONLY_MENTIONS` = 1
+    default_message_notifications: u8,
+    /// explicit content filter level <br/>
+    /// `DISABLED` = 0, `MEMBERS_WITHOUT_ROLES` = 1, `ALL_MEMBERS` = 2
+    explicit_content_filter: u8,
+    /// roles in the guild
+    pub roles: Vec<RoleInfo>,
+    /// custom guild emojis
+    pub emojis: Vec<EmojiInfo>,
+    /// enabled [guild features](https://discord.com/developers/docs/resources/guild#guild-object-guild-features)
+    pub features: Vec<String>,
+    /// required [MFA level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level) for the guild <br/>
+    /// `NONE` = 0, `ELEVATED` = 1
+    pub mfa_level: u8,
+    /// application id of the guild creator if it is bot-created
+    pub application_id: Option<String>,
+    /// the id of the channel where guild notices such as welcome messages and boost events are posted
+    pub system_channel_id: Option<String>,
+    /// [system channel flags](https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags)
+    pub system_channel_flags: u8,
+    /// the id of the channel where Community guilds can display rules and/or guidelines
+    pub rules_channel_id: Option<String>,
+    /// when this guild was joined at
+    pub joined_at: Option<String>,
+    /// true if this is considered a large guild
+    pub large: Option<bool>,
+    /// true if this guild is unavailable due to an outage
+    pub unavailable: Option<bool>,
+    /// total number of members in this guild
+    pub member_count: Option<i32>,
+    /// states of members currently in voice channels; lacks the `guild_id` key
+    pub voice_states: Option<Vec<VoiceState>>,
+    /// users in the guild
+    pub members: Option<Vec<GuildMemberInfo>>,
+    /// channels in the guild
+    pub channels: Option<Vec<ChannelInfo>>,
+
+
+    // description: Option<String>,
+    // max_members: u32,
+    // afk_channels_id: Option<String>,
+    // roles: Vec<RoleInfo>,
+    // lazy: bool,
+    // channels: Vec<ChannelInfo>,
     // TODO: Continue with channels inside guilds
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RoleInfo {
-    pub id: Option<String>,     // role id
-    pub name: String,           // role name
-    pub color: i32,             // integer representation of hexadecimal color code
-    hoist: bool,                // if this role is pinned in the user listing
-    pub position: i32,          // position of this role
-    pub permissions: String,    // permission bit set
-    managed: bool,              // whether this role is managed by an integration
-    pub mentionable: bool,      // whether this role is mentionable
-    tags: Option<Value>         // the tags this role has
+    /// role id
+    pub id: Option<String>,
+    /// role name
+    pub name: String,
+    /// integer representation of hexadecimal color code
+    pub color: i32,
+    /// if this role is pinned in the user listing
+    hoist: bool,
+    /// position of this role
+    pub position: i32,
+    /// permission bit set
+    pub permissions: String,
+    /// whether this role is managed by an integration
+    managed: bool,
+    /// whether this role is mentionable
+    pub mentionable: bool,
+    /// the tags this role has
+    tags: Option<Value>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChannelInfo {
+    /// the id of this channel
+    pub id: String,
+    /// the type of channel
+    #[serde(rename="type")]
+    pub channel_type: ChannelTypes,
+    /// the id of the guild
+    pub guild_id: Option<String>,
+    /// sorting position of the channel
+    pub position: Option<i32>,
+    /// explicit permission overwrites for members and roles
+    pub permission_overwrites: Vec<PermissionOverwrite>,
+    // the name of the channel (2-100 characters)
+    pub name: Option<String>,
+    /// the channel topic (0-1024 characters)
+    pub topic: Option<String>,
+    /// whether the channel is nsfw
+    pub nsfw: Option<bool>,
+    /// the id of the last message sent in this channel (may not point to an existing or valid message)
+    pub last_message_id: Option<String>,
+    /// the bitrate (in bits) of the voice channel
+    pub bitrate: Option<i32>,
+    /// the user limit of the voice channel
+    pub user_limit: Option<i32>,
+    /// amount of seconds a user has to wait before sending another message (0-21600); bots, as well as users with the permission `manage_messages` or `manage_channel`, are unaffected
+    pub rate_limit_per_user: Option<i32>,
+    /// the recipients of the DM
+    pub recipients: Vec<UserInfo>,
+    /// icon hash
+    pub icon: Option<String>,
+    /// id of the DM creator
+    pub owner_id: Option<String>,
+    /// application id of the group DM creator if it is bot-created
+    pub application_id: Option<String>,
+    /// id of the parent category for a channel (each parent category can contain up to 50 channels)
+    pub parent_id: Option<String>,
+    /// when the last pinned message was pinned. This may be null in events such as GUILD_CREATE when a message is not pinned.
+    last_pin_timestamp: Option<String>
+}
+
+#[repr(u8)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ChannelTypes {
+    /// a text channel within a server
+    GuildText = 0,
+    /// a direct message between users
+    DM = 1,
+    /// a voice channel within a server
+    GuildVoice = 2,
+    /// a direct message between multiple users
+    GroupDm = 3,
+    /// an organizational category that contains up to 50 channels
+    GuildCategory = 4,
+    /// a channel that users can follow and crosspost into their own server
+    GuildNews = 5,
+    /// a channel in which game developers can sell their game on Discord
+    GuildStore = 6
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmojiInfo {
+    /// emoji id
+    pub id: Option<String>,
+    /// emoji name
+    pub name: Option<String>,
+    /// roles this emoji is whitelisted to
+    pub roles: Option<Vec<String>>,
+    /// user that created this emoji
+    pub user: Option<UserInfo>,
+    /// whether this emoji must be wrapped in colons
+    pub require_colons: Option<bool>,
+    /// whether this emoji is managed
+    pub managed: Option<bool>,
+    /// whether this emoji is animated
+    pub animated: Option<bool>,
+    /// whether this emoji can be used, may be false due to loss of Server Boosts
+    pub available: Option<bool>
+}
+
+/// https://discord.com/developers/docs/resources/guild#guild-member-object
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GuildMemberInfo {
+    /// the user this guild member represents
+    pub user: Option<UserInfo>,
+    /// this users guild nickname
+    pub nick: Option<String>,
+    /// array of [role](https://discord.com/developers/docs/topics/permissions#role-object) object ids
+    pub roles: Vec<String>,
+    /// when the user joined the guild
+    pub joined_at: String,
+    /// when the user started boosting the guild
+    pub premium_since: Option<String>,
+    /// whether the user is deafened in voice channels
+    pub deaf: bool,
+    /// whether the user is muted in voice channels
+    pub mute: bool,
+    /// whether the user has not yet passed the guild's Membership Screening requirements
+    pub pending: Option<bool>,
+    /// total permissions of the member in the channel, including overrides, returned when in the interaction object
+    pub permission: Option<String>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActivityInfo {
+    /// the activity's name
+    pub name: String,
+    /// activity type
+    #[serde(rename="type")]
+    pub activiy_type: ActivityType,
+    /// stream url, is validated when type is 1
+    
+    /// unix timestamp of when the activity was added to the user's session
+    
+    /// unix timestamps for start and/or end of the game
+    
+    /// application id for the game
+    
+    /// what the player is currently doing
+    
+    /// the user's current party status
+    
+    /// the emoji used for a custom status
+    
+    /// information for the current party of the player
+    
+    /// images for the presence and their hover texts
+    
+    /// secrets for Rich Presence joining and spectating
+    
+    /// whether or not the activity is an instanced game session
+    
+    /// activity flags ORd together, describes what the payload includes
+
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PermissionOverwrite {
+    /// role or user id
+    id: String,
+    /// either 0 (role) or 1 (member)
+    #[serde(rename="type")]
+    target_type: u8,
+    /// permission bit set
+    allow: String,
+    /// permission bit set
+    deny: String
+}
+
+/// https://discord.com/developers/docs/topics/gateway#presence-update
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PresenceUpdateEventInfo {
+    /// the user presence is being updated for
+    pub user: UserInfo,
+    /// id of the guild
+    pub guild_id: String,
+    /// either "idle", "dnd", "online", or "offline"
+    pub status: String,
+    /// user's current activities
+    pub activities: Vec<ActivityInfo>,
+    /// user's platform-dependent status
+    pub client_status: ClientStatusInfo
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VoiceState {
+    /// the guild id this voice state is for
+    pub guild_id: Option<String>,
+    /// the channel id this user is connected to
+    pub channel_id: Option<String>,
+    /// the user id this voice state is for
+    pub user_id: String,
+    /// the guild member this voice state is for
+    pub member: Option<GuildMemberInfo>,
+    /// the session id for this voice state
+    pub session_id: String,
+    /// whether this user is deafened by the server
+    pub deaf: bool,
+    /// whether this user is muted by the server
+    pub mute: bool,
+    /// whether this user is locally deafened
+    pub self_deaf: bool,
+    /// whether this user is locally muted
+    pub self_mute: bool,
+    /// whether this user is streaming using "Go Live"
+    pub self_stream: Option<bool>,
+    /// whether this user's camera is enabled
+    pub self_video: bool,
+    /// whether this user is muted by the current user
+    pub suppress: bool
+}
+
+#[repr(u8)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum VerificationLevel {
+    /// unrestricted
+    None = 0,
+    /// must have verified email on account
+    Low = 1,
+    /// must be registered on Discord for longer than 5 minutes
+    Medium = 2,
+    /// must be a member of the server for longer than 10 minutes
+    High = 3,
+    /// must have a verified phone number
+    VeryHigh = 4
+}
+
+/// https://discord.com/developers/docs/topics/gateway#activity-object-activity-types
+#[repr(u8)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ActivityType {
+    Game = 0,
+    Streaming = 1,
+    Listening = 2,
+    Custom = 4,
+    Competing = 5
 }
 
 bitflags! {
-    struct PermissionFlags: u32 {
+    pub struct PermissionFlags: u64 {
         const CREATE_INSTANT_INVITE = 1 << 0;
         const KICK_MEMBERS = 1 << 1;
         const BAN_MEMBERS = 1 << 2;
@@ -234,5 +550,25 @@ bitflags! {
         const MANAGE_ROLES = 1 << 28;
         const MANAGE_WEBHOOKS = 1 << 29;
         const MANAGE_EMOJIS  = 1 << 30;
+    }
+}
+
+bitflags! {
+    #[derive(Serialize, Deserialize)]
+    pub struct UserFlags: u32 {
+        const NONE = 0;
+        const DISCORD_EMPLOYEE = 1 << 0;
+        const PARTNERED_SERVER_OWNER = 1 << 1;
+        const HYPESQUAD_EVENTS = 1 << 2;
+        const BUG_HUNTER_LEVEL_1 = 1 << 3;
+        const HOUSE_BRAVERY = 1 << 6;
+        const HOUSE_BRILLIANCE = 1 << 7;
+        const HOUSE_BALANCE = 1 << 8;
+        const EARLY_SUPPORTER = 1 << 9;
+        const TEAM_USER = 1 << 10;
+        const SYSTEM = 1 << 12;
+        const BUG_HUNTER_LEVEL_2 = 1 << 14;
+        const VERIFIED_BOT = 1 << 16;
+        const EARLY_VERIFIED_BOT_DEVELOPER = 1 << 17;
     }
 }

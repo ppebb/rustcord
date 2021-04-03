@@ -1,8 +1,22 @@
 use serde_json::Value;
 use serde_repr::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 // TODO: Maybe convert ids from Strings to a custom Snowflake type
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Snowflake(u64);
+
+impl<'de> Deserialize<'de> for Snowflake {
+    fn deserialize<D>(deserializer: D) -> Result<Snowflake, D::Error> 
+    where
+        D: Deserializer<'de>
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        let snowflake_id = s.parse::<u64>().map_err(|_| serde::de::Error::custom("Tried to parse an invalid snowflake id"))?;
+        Ok(Snowflake(snowflake_id))
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GatewayPayload {
@@ -340,8 +354,8 @@ pub struct ChannelInfo {
     last_pin_timestamp: Option<String>
 }
 
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]
 #[repr(u8)]
-#[derive(Debug, Serialize, Deserialize)]
 pub enum ChannelTypes {
     /// a text channel within a server
     GuildText = 0,
@@ -410,11 +424,11 @@ pub struct ActivityInfo {
     #[serde(rename="type")]
     pub activiy_type: ActivityType,
     /// stream url, is validated when type is 1
-    
+    pub url: Option<String>,
     /// unix timestamp of when the activity was added to the user's session
-    
+    pub created_at: i32,
     /// unix timestamps for start and/or end of the game
-    
+    pub application_id: Option<String>,
     /// application id for the game
     
     /// what the player is currently doing
@@ -491,8 +505,8 @@ pub struct VoiceState {
     pub suppress: bool
 }
 
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]
 #[repr(u8)]
-#[derive(Debug, Serialize, Deserialize)]
 pub enum VerificationLevel {
     /// unrestricted
     None = 0,
@@ -507,8 +521,8 @@ pub enum VerificationLevel {
 }
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-types
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]
 #[repr(u8)]
-#[derive(Debug, Serialize, Deserialize)]
 pub enum ActivityType {
     Game = 0,
     Streaming = 1,

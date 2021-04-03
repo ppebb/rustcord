@@ -587,6 +587,45 @@ bitflags! {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Webhook {
+    /// The default name of the Webhook
+    pub name: String,
+    /// The type of the Webhook
+    #[serde(rename="type")]
+    pub webhook_type: i32,
+    /// The channel id this Webhook is for
+    pub channel_id: Value, // TODO change to snowflake (:
+    /// The guild id  this Webhook is for
+    pub guild_id: Option<Value>, // TODO change to snowflake (:
+    /// The user object
+    pub user: Option<UserInfo>,
+    /// The secure token of the webhook (returned for incoming Webhooks)
+    pub token: Option<String>,
+    /// The bot/OAuth2 applications that created this Webhook
+    pub application_id: Option<Value>, // TODO change to snowflake (:
+    /// The default avatar of the webhook
+    pub avator: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateWebhook {
+    /// The name of the Webhook
+    pub name: String,
+    /// The image for the default Webhook avatar
+    pub avatar: Option<Value>, // TODO change to ImageData
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModifyWebhook {
+    /// The default name of the Webhook
+    pub name : String,
+    /// The image for the default Webhook avatar
+    pub avatar: Option<Value>, // TODO change to ImageData
+    /// The new channel id this Webhook should be moved to
+    pub channel_id: Value, // TODO change to snowflake (:
+}
+
 pub enum Result {
     /// everything is good
     Ok = 0,

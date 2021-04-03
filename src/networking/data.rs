@@ -708,7 +708,7 @@ pub enum Result {
     /// that push to talk shortcut is already registered
     CaptureShortcutAlreadyListening = 39,
     /// your application cannot update this achievement
-    UnauthorizedForAchievement = 40;
+    UnauthorizedForAchievement = 40,
     /// the gift code is not valid
     InvalidGiftCode	= 41,
     /// something went wrong during the purchase flow

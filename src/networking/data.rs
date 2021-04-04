@@ -876,3 +876,23 @@ pub enum ResposeResult {
     /// purchase flow aborted because the SDK is being torn down
     TransactionAborted = 43,
 }
+
+pub enum LogLevel {
+    /// NOTE: ORIGINALLY DID NOT HAVE VALUES.
+    /// Log only errors
+    Error = 0,
+    /// Log warnings and errors
+    Warning	= 1,
+    /// Log info, warnings, and errors
+    Info = 2,
+    /// Log all the things!
+    Debug = 3,
+}
+
+pub enum CreateFlags {
+    /// NOTE: ORIGINALLY DID NOT HAVE VALUES.
+    /// Requires Discord to be running to play the game
+    Default = 0, 
+    /// Does not require Discord to be running, use this on other platforms
+    NoRequireDiscord = 1,
+}

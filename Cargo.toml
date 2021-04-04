@@ -11,3 +11,6 @@ fltk = "^0.16"
 
 [dependencies.reqwest]
 reqwest = "0.9.18"
+
+[dependencies.web-view]
+web-view = { version = "0.7" }

@@ -36,7 +36,7 @@ pub enum PayloadData {
         user_settings: UserSettings,
         user_guild_settings: PayloadEntryList<UserGuildSettingEntry>,
         user: UserInfo,
-        tutorial: Option<Value>, // TODO
+        tutorial: Value, // TODO
         session_id: String,
         relationships: Vec<UserRelationship>,
         read_state: PayloadEntryList<ReadStateEntry>,
@@ -115,7 +115,7 @@ pub struct UserSettings {
     stream_notifications_enabled: bool,
     pub status: String,
     show_current_game: bool,
-    restricted_guilds: Vec<Value>, // TODO: Discover this
+    restricted_guilds: Value, // TODO: Discover this
     render_reactions: bool,
     render_embeds: bool,
     native_phone_integration_enabled: bool,
@@ -126,7 +126,7 @@ pub struct UserSettings {
     guild_positions: Vec<String>, // How the channels are sorted in the left bar
     guild_folders: Vec<GuildFolderInfo>,
     gif_auto_play: bool,
-    friend_source_flags: Vec<Value>, // TODO: { "all": true }
+    friend_source_flags: Value, // TODO: { "all": true }
     friend_discovery_flags: i32,
     explicit_content_filter: i32,
     enable_tts_command: bool,
@@ -679,6 +679,8 @@ pub enum ActivityType {
 }
 
 bitflags! {
+    #[derive(Serialize, Deserialize)]
+    #[serde(transparent)]
     pub struct PermissionFlags: u64 {
         const CREATE_INSTANT_INVITE = 1 << 0;
         const KICK_MEMBERS = 1 << 1;
@@ -716,6 +718,7 @@ bitflags! {
 
 bitflags! {
     #[derive(Serialize, Deserialize)]
+    #[serde(transparent)]
     pub struct UserFlags: u32 {
         const NONE = 0;
         const DISCORD_EMPLOYEE = 1 << 0;
@@ -736,6 +739,7 @@ bitflags! {
 
 bitflags! {
     #[derive(Serialize, Deserialize)]
+    #[serde(transparent)]
     pub struct ActivityFlags: u8 {
         const INTANCE = 1 << 0;
         const JOIN = 1 << 1;
@@ -745,6 +749,7 @@ bitflags! {
         const PLAY = 1 << 5;
     }
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Webhook {
     /// The default name of the Webhook

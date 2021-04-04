@@ -36,13 +36,23 @@ pub enum PayloadData {
         user_settings: UserSettings,
         user_guild_settings: PayloadEntryList<UserGuildSettingEntry>,
         user: UserInfo,
-        tutorial: Option<Value>,
+        tutorial: Option<Value>, // TODO
         session_id: String,
         relationships: Vec<UserRelationship>,
         read_state: PayloadEntryList<ReadStateEntry>,
         private_channels: Vec<PrivateChannelEntry>,
         merged_members: Value, // TODO: Convert this thing to a struct
-        guilds: Vec<GuildInfo>
+        guilds: Vec<GuildInfo>,
+        guild_join_requests: Value, // TODO
+        guild_experiments: Value,   // TODO
+        geo_ordered_rtc_regions: Vec<String>,
+        friend_suggestion_count: Option<i32>,
+        experiments: Value, // TODO
+        country_code: Option<String>,
+        consents: Value, // TODO
+        connected_accounts: Vec<ConnectedAccountInfo>,
+        analytics_token: String,
+        _trace: Value // TODO
     }
 }
 
@@ -182,7 +192,7 @@ pub struct GuildFolderInfo {
     pub name: String, 
     pub id: String, // TODO: Find out if it's actually a string
     pub guild_ids: Vec<String>,
-    pub color: String, // TODO: Find out if it's actually a string
+    pub color: i32, // TODO: Find out if it's actually a string
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -214,7 +224,7 @@ pub struct PrivateChannelEntry {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GuildInfo {
     /// guild id
-    pub id: String,
+    pub id: Snowflake,
     /// guild name (2-100 characters, excluding trailing and leading whitespace)
     pub name: String,
     /// icon hash
@@ -280,15 +290,40 @@ pub struct GuildInfo {
     pub members: Option<Vec<GuildMemberInfo>>,
     /// channels in the guild
     pub channels: Option<Vec<ChannelInfo>>,
-
-
-    // description: Option<String>,
-    // max_members: u32,
-    // afk_channels_id: Option<String>,
-    // roles: Vec<RoleInfo>,
-    // lazy: bool,
-    // channels: Vec<ChannelInfo>,
-    // TODO: Continue with channels inside guilds
+    /// presences of the members in the guild, will only include non-offline members if the size is greater than `large threshold`
+    pub presences: Option<Vec<PresenceUpdateEventInfo>>,
+    /// the maximum number of presences for the guild (the default value, currently 25000, is in effect when null is returned)
+    pub max_presences: Option<i32>,
+    /// the maximum number of members for the guild
+    pub max_members: Option<i32>,
+    /// the vanity url code for the guild
+    pub vanity_url_code: Option<String>,
+    /// the description for the guild, if the guild is discoverable
+    pub description: Option<String>,
+    /// banner hash
+    pub banner: Option<String>,
+    /// [premium tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier) (Server Boost level)
+    pub premium_tier: Option<u8>,
+    /// the number of boosts this guild currently has
+    pub premium_subscription_count: Option<i32>,
+    /// the preferred locale of a Community guild; used in server discovery and notices from Discord; defaults to "en-US"
+    pub preferred_locale: String,
+    /// the id of the channel where admins and moderators of Community guilds receive notices from Discord
+    pub public_updates_channel_id: Option<Snowflake>,
+    /// the maximum amount of users in a video channel
+    pub max_video_channel_users: Option<i32>,
+    /// approximate number of members in this guild, returned from the `GET /guilds/<id>` endpoint when `with_counts` is `true`
+    pub approximate_member_count: Option<i32>,
+    /// approximate number of non-offline members in this guild, returned from the `GET /guilds/<id>` endpoint when `with_counts` is `true`
+    pub approximate_presence_count: Option<i32>,
+    /// the welcome screen of a Community guild, shown to new members, returned when in the invite object
+    pub welcome_screen: Option<WelcomeScreenInfo>,
+    /// Isn't documented but exists in the gateway's ready message
+    lazy: Option<bool>,
+    /// Isn't documented but exists in the gateway's ready message
+    guild_hashes: Option<GuildHashInfo>,
+    /// Isn't documented but exists in the gateway's ready message
+    threads: Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -376,7 +411,7 @@ pub enum ChannelTypes {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EmojiInfo {
     /// emoji id
-    pub id: Option<String>,
+    pub id: Option<Snowflake>,
     /// emoji name
     pub name: Option<String>,
     /// roles this emoji is whitelisted to
@@ -466,15 +501,35 @@ pub struct PermissionOverwrite {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PresenceUpdateEventInfo {
     /// the user presence is being updated for
-    pub user: UserInfo,
+    pub user: Option<UserInfo>,
     /// id of the guild
-    pub guild_id: String,
+    pub guild_id: Snowflake,
     /// either "idle", "dnd", "online", or "offline"
-    pub status: String,
+    pub status: Option<String>,
     /// user's current activities
-    pub activities: Vec<ActivityInfo>,
+    pub activities: Option<Vec<ActivityInfo>>,
     /// user's platform-dependent status
-    pub client_status: ClientStatusInfo
+    pub client_status: Option<ClientStatusInfo>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WelcomeScreenInfo {
+    /// the server description shown in the welcome screen
+    pub description: Option<String>,
+    /// the channels shown in the welcome screen, up to 5
+    pub welcome_channels: Vec<WelcomeScreenChannelInfo>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WelcomeScreenChannelInfo {
+    /// the channel's id
+    pub channel_id: Snowflake,
+    /// the description shown for the channel
+    pub description: String,
+    /// the emoji id, if the emoji is custom
+    pub emoji_id: Option<Snowflake>,
+    /// the emoji name if custom, the unicode character if standard, or `null` if no emoji is set
+    pub emoji_name: Option<String>,
 }
 
 /// https://discord.com/developers/docs/topics/gateway#client-status-object
@@ -567,6 +622,34 @@ pub struct ActivitySecrets {
     /// the secret for a specific instanced match
     #[serde(rename="match")]
     pub secret_match: Option<String> 
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GuildHashInfo {
+    version: Option<u8>,
+    roles: OmittableHash,
+    metadata: OmittableHash,
+    channels: OmittableHash
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConnectedAccountInfo {
+    pub visibility: u8, 
+    pub verified: bool,
+    #[serde(rename="type")]
+    pub connection_type: String,
+    pub show_activity: bool,
+    pub revoked: bool,
+    pub name: String,
+    pub id: String,
+    pub friend_sync: bool,
+    pub access_token: Option<String>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct OmittableHash {
+    omitted: Option<bool>,
+    hash: Option<String>
 }
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]
@@ -701,6 +784,8 @@ pub struct ModifyWebhook {
     pub channel_id: Value, // TODO change to snowflake (:
 }
 
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]
+#[repr(u8)]
 pub enum ResposeResult {
     /// everything is good
     Ok = 0,
@@ -737,21 +822,21 @@ pub enum ResposeResult {
     /// the user's bearer token is invalid
     InvalidAccessToken = 16,
     /// access token belongs to another application
-    ApplicationMismatch	= 17,
+    ApplicationMismatch = 17,
     /// something internally went wrong fetching image data
     InvalidDataUrl = 18,
     /// not valid Base64 data
     InvalidBase64 = 19,
     /// you're trying to access the list before creating a stable list with Filter()
-    NotFiltered	= 20,
+    NotFiltered = 20,
     /// the lobby is full
     LobbyFull = 21,
     /// the secret you're using to connect is wrong
     InvalidLobbySecret = 22,
     /// file name is too long
-    InvalidFilename	= 23,
+    InvalidFilename = 23,
     /// file is too large
-    InvalidFileSize	= 24,
+    InvalidFileSize = 24,
     /// the user does not have the right entitlement for this game
     InvalidEntitlement = 25,
     /// Discord is not installed
@@ -771,13 +856,13 @@ pub enum ResposeResult {
     /// the origin header on the socket does not match what you've registered (you should not see this)
     InvalidOrigin = 33,
     /// you are calling that method too quickly
-    RateLimited	= 34,
+    RateLimited = 34,
     /// the OAuth2 process failed at some point
-    OAuth2Error	= 35,
+    OAuth2Error = 35,
     /// the user took too long selecting a channel for an invite
     SelectChannelTimeout = 36, 
     /// took too long trying to fetch the guild
-    GetGuildTimeout	= 37,
+    GetGuildTimeout = 37,
     /// push to talk is required for this channel
     SelectVoiceForceRequired = 38,
     /// that push to talk shortcut is already registered
@@ -785,7 +870,7 @@ pub enum ResposeResult {
     /// your application cannot update this achievement
     UnauthorizedForAchievement = 40,
     /// the gift code is not valid
-    InvalidGiftCode	= 41,
+    InvalidGiftCode = 41,
     /// something went wrong during the purchase flow
     PurchaseError = 42,
     /// purchase flow aborted because the SDK is being torn down

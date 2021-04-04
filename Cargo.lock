@@ -1367,6 +1367,8 @@ dependencies = [
  "bitflags",
  "fltk",
  "futures 0.3.13",
+ "futures-channel",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",

@@ -2,59 +2,56 @@ use std::time::Duration;
 
 use data::GatewayPayload;
 use futures_util::{future, pin_mut, StreamExt};
-use tokio::io::AsyncWriteExt;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 pub mod data;
 
 pub async fn connect_to_websocket(wss_url: &str) {
+    // Convert the input url from a string to a Url
     let url = url::Url::parse(wss_url).unwrap();
 
+    // Make an unbounded mpsc (multiple producer - single consumer)
     let (writer_tx, writer_rx) = futures_channel::mpsc::unbounded();
 
     println!("Connecting to: {}", url);
     let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
-    println!("Handshake completed with: {}", wss_url);
+    println!("Handshake completed");
 
     let (write, read) = ws_stream.split();
 
+    // Handle received messages
     let ws_to_stdout = {
         read.for_each(|message| async {
             let message = message.unwrap();
             let data = message.into_text().unwrap();
-            // let message_clone = message.clone();
-            // let data = message.into_data();
-            // tokio::io::stdout().write_all(&data).await.unwrap();
-            println!("Received: {}", data);
-            // let payload: GatewayPayload = serde_json::from_str(data.as_str()).unwrap();
-            // println!("Payload data is: {:?}", payload.d);
+            
+            println!("Received some data");
+            //println!("\t-> {}", data);
+            let payload: GatewayPayload = serde_json::from_str(data.as_str()).unwrap();
+            println!("\t-> {:?}", payload);
         })  
     };
 
+    // Spawn a thread to send the IDENTIFY message
+    tokio::spawn(send_identify(writer_tx.clone()));
     
-    tokio::spawn(send_messages(writer_tx));
-    // let sender = write as futures::channel::mpsc::UnboundedSender<Message>;
-    // sender.unbounded_send(Message::binary(r#"{"op": 2, "d": {"token": "ODI2ODg2Nzc3NTY5OTM1MzYw.YGTAzg.FaMRY812p7wQcAB3mamMyfjDtSA", "presence": {"status": "online", "since": 0, "activities": [], "afk": false}, "capabilities": 61, "properties": {"os": "Mystery", "browser": "Mystery", "browser_user_agent": "Why do you care"}, "client_state": {"guild_hashes": {}, "highest_last_message_id": "0", "read_state_version": 0, "user_guild_settings_version": -1}}}"#));
+    // Send messages from writer_rx to the write sink
     let sender_to_ws = writer_rx.map(Ok).forward(write);
 
     pin_mut!(sender_to_ws, ws_to_stdout);
+    // await the futures and continue when any of them finishes
     future::select(sender_to_ws, ws_to_stdout).await;
-    //ws_to_stdout.await;
-    println!("ended");
+    println!("Websocket has been closed");
 }
 
-async fn send_messages(tx: futures_channel::mpsc::UnboundedSender<Message>) {
-    let data = r#"{"op": 2, "d": {"token": "ODI2ODg2Nzc3NTY5OTM1MzYw.YGTAzg.FaMRY812p7wQcAB3mamMyfjDtSA", "presence": {"status": "online", "since": 0, "activities": [], "afk": false}, "capabilities": 61, "properties": {"os": "Mystery", "browser": "Mystery", "browser_user_agent": "Why do you care"}, "client_state": {"guild_hashes": {}, "highest_last_message_id": "0", "read_state_version": 0, "user_guild_settings_version": -1}}}"#;
-        print!("Sending... ");
-        tx.unbounded_send(Message::text(data)).unwrap();
-        println!("{}", data);
-    
-    loop {
-        tokio::time::sleep(Duration::new(5, 0)).await;
-    }
+async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
+    tokio::time::sleep(Duration::new(1, 0)).await;
+    // TODO: Make an identifier struct with a fn default(token: String)
+    let data = "Hidden from commit";
+    tx.unbounded_send(Message::text(data)).unwrap();
+    println!("Sent message");
 }
 
 pub async fn connect_to_discord() {
     connect_to_websocket("wss://gateway.discord.gg/?encoding=json&v=8").await;
-    // connect_to_websocket("wss://echo.websocket.org").await;
 }

@@ -9,10 +9,8 @@ fn main() {
     let info = Frame::default().with_pos(50, 450).with_size(200, 50).with_label("info").set_frame(FrameType::EngravedBox);
     let members = Frame::default().with_pos(750, 50).with_size(250, 450).with_label("members").set_frame(FrameType::EngravedBox);
     let mut chat_messages = HoldBrowser::default().with_size(500, 400).with_pos(250, 50);
-    //let mut channels_list = HoldBrowser::default().with_size(200, 400).with_pos(50, 50).add("channel");
     let mut but1 = ReturnButton::default().with_pos(700, 450).with_size(50, 50).with_label("send");
     let mut chat_input = Input::default().with_pos(250, 450).with_size(450, 50);
-    //app::background(54, 57, 63);
     wind.make_resizable(true);
     wind.end();
     wind.show();

@@ -3,6 +3,7 @@ use serde_repr::*;
 use serde::{Deserialize, Deserializer, Serialize};
 
 // TODO: Maybe convert ids from Strings to a custom Snowflake type
+// TODO: Split into multiple files
 
 #[derive(Debug, Serialize, PartialEq)]
 pub struct Snowflake(u64);

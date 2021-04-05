@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use data::GatewayPayload;
+use data::gateway::GatewayPayload;
 use futures_channel;
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
@@ -12,9 +12,9 @@ async fn connect_to_websocket(wss_url: &str) -> (WebSocketStream<MaybeTlsStream<
     // Convert the input url from a string to a Url
     let url = url::Url::parse(wss_url).unwrap();
 
-    println!("Connecting to: {}", url);
+    println!("[connect_to_websocket] Connecting to: {}", url);
     let (ws_stream, response) = connect_async(url).await.expect("Failed to connect");
-    println!("Handshake completed");
+    println!("[connect_to_websocket] Handshake completed");
 
     (ws_stream, response)
 }
@@ -37,16 +37,16 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
             }
             // TODO: Do stuff with the payload
         },
-        Err(error) => println!("[receive_message] ERROR!\n\t--> Failed to parse the payload: {}\n\tInput is: {}", error, text)
+        Err(error) => println!("[receive_message] ERROR!\n\t--> Failed to parse the payload: {}\n\t--> Input is: {}", error, text)
     }
 }
 
-async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
+pub async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
     tokio::time::sleep(Duration::new(1, 0)).await;
     // TODO: Make an identifier struct with a fn default(token: String)
-    let data = r#"{"op": 2, "d": {"token": "ODI4MTEzMDY1OTU4MTc4ODE4.YGoYug.5sqVCLYprtWh-E519_FWEfvaSB8", "presence": {"status": "online", "since": 0, "activities": [], "afk": false}, "capabilities": 61, "properties": {"os": "Mystery", "browser": "Mystery", "browser_user_agent": "Why do you care"}, "client_state": {"guild_hashes": {}, "highest_last_message_id": "0", "read_state_version": 0, "user_guild_settings_version": -1}}}"#;
+    let data = r#"{"op": 2, "d": {"token": "ODI4Njg1NTAxMzgzODM1NzA4.YGtUmQ.UFFoUyw7zNpOdsR0aOFkIWPLVkY", "presence": {"status": "online", "since": 0, "activities": [], "afk": false}, "capabilities": 61, "properties": {"os": "Mystery", "browser": "Mystery", "browser_user_agent": "Why do you care"}, "client_state": {"guild_hashes": {}, "highest_last_message_id": "0", "read_state_version": 0, "user_guild_settings_version": -1}}}"#;
     tx.unbounded_send(Message::text(data)).unwrap();
-    println!("Sent message");
+    println!("[send_identify] Sent identify message");
 }
 
 /// `write_rx` receives messages to be sent to the websocket.
@@ -54,7 +54,7 @@ async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
 pub async fn connect_to_discord(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {
     let (ws_stream, response) = connect_to_websocket("wss://gateway.discord.gg/?encoding=json&v=8").await;
     if response.status() != StatusCode::SWITCHING_PROTOCOLS {
-        println!("Failed to connect to the websocket! {:?}", response);
+        println!("[connect_to_discord] Failed to connect to the websocket! {:?}", response);
         return;
     }
 
@@ -71,7 +71,7 @@ pub async fn connect_to_discord(write_rx: futures_channel::mpsc::UnboundedReceiv
 
     // Pin the values on the stack
     pin_mut!(read_thread, write_thread);
-    // wait for any of both threads to finish
+    // wait for any of the threads to finish
     future::select(read_thread, write_thread).await;
-    println!("Weebsocket has been closed");
+    println!("[connect_to_discord] Websocket has been closed");
 }

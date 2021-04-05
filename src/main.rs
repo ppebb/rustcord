@@ -3,7 +3,7 @@
 use fltk::{app, window::*};
 use futures_channel;
 use tokio::{self, sync::mpsc};
-use networking::{connect_to_discord, data::GatewayPayload};
+use networking::{connect_to_discord, data::gateway::GatewayPayload, send_identify};
 use tokio_tungstenite::tungstenite::Message;
 
 #[macro_use]
@@ -31,6 +31,8 @@ async fn main() {
             }
         }
     });
+
+    tokio::spawn(send_identify(write_tx.clone()));
 
     tokio::spawn(connect(write_rx, read_tx.clone()));
     app.run().unwrap();

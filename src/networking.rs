@@ -43,7 +43,6 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
 
 pub async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
     tokio::time::sleep(Duration::new(1, 0)).await;
-    // TODO: Make an identifier struct with a fn default(token: String)
     let payload_data = GatewayPayloadData::get_identify_message(&"No stealy".to_string());
     let data = serde_json::to_string(&payload_data).unwrap();
     tx.unbounded_send(Message::text(data)).unwrap();

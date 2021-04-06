@@ -12,6 +12,7 @@ pub mod user;
 pub mod guild;
 pub mod channel;
 pub mod sendable;
+pub mod message;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Snowflake(String);

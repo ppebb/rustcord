@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_repr::*;
 
-use super::{ConnectedAccountInfo, PayloadEntryList, ReadStateEntry, channel::PrivateChannelEntry, guild::GuildInfo, user::{UserGuildSettingEntry, UserInfo, UserRelationship, UserSettings}};
+use super::{ConnectedAccountInfo, PayloadEntryList, ReadStateEntry, channel::PrivateChannelEntry, guild::GuildInfo, message::MessageInfo, user::{UserGuildSettingEntry, UserInfo, UserRelationship, UserSettings}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GatewayPayload {
@@ -44,6 +44,10 @@ pub enum GatewayPayloadData {
         token: String,
         capabilities: i32,
         properties: IdentifyProperties
+    },
+    MessageCreateData {
+        #[serde(flatten)]
+        message_data: MessageInfo
     }
 }
 

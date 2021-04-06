@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use data::{gateway::{GatewayPayload, GatewayPayloadData}, sendable};
+use data::{gateway::GatewayPayload, sendable::{self, create_heartbeat_message}};
 use futures_channel;
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
@@ -74,4 +74,15 @@ pub async fn connect_to_discord(write_rx: futures_channel::mpsc::UnboundedReceiv
     // wait for any of the threads to finish
     future::select(read_thread, write_thread).await;
     println!("[connect_to_discord] Websocket has been closed");
+}
+
+pub async fn start_heartbeat(delay: u32, write_tx: futures_channel::mpsc::UnboundedSender<Message>) {
+    println!("[start_heartbeat] Started heartbeat thread");
+    let mut interval = tokio::time::interval(Duration::from_millis(delay as u64));
+    loop {
+        interval.tick().await;
+        println!("[start_heartbeat] Sending heartbeat!");
+        let heartbeat_json = serde_json::to_string(&create_heartbeat_message()).unwrap();
+        write_tx.unbounded_send(Message::text(heartbeat_json)).unwrap();
+    }
 }

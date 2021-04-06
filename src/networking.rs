@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use data::{gateway::{GatewayPayload, GatewayPayloadData}};
+use data::{gateway::{GatewayPayload, GatewayPayloadData}, sendable};
 use futures_channel;
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
@@ -43,7 +43,7 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
 
 pub async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
     tokio::time::sleep(Duration::new(1, 0)).await;
-    let payload_data = GatewayPayloadData::get_identify_message(&"No stealy".to_string());
+    let payload_data = sendable::create_identify_message(&"ODI4NzgwNDkzMzg2MDIyOTQy.YGukPQ.U1-xZ-bxk5uhnwkVPrBUVMUMLvM".to_string());
     let data = serde_json::to_string(&payload_data).unwrap();
     tx.unbounded_send(Message::text(data)).unwrap();
     println!("[send_identify] Sent identify message");

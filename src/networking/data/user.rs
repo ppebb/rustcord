@@ -8,9 +8,9 @@ pub struct UserInfo {
     /// the user's id
     pub id: Snowflake,
     /// the user's username, not unique across the platform
-    pub username: String,
+    pub username: Option<String>,
     /// the user's 4-digit discord-tag
-    pub discriminator: String,
+    pub discriminator: Option<String>,
     /// the user's avatar hash
     pub avatar: Option<String>,
     /// whether the user belongs to an OAuth2 application

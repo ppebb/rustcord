@@ -142,7 +142,7 @@ pub struct GuildMemberInfo {
     /// this users guild nickname
     pub nick: Option<String>,
     /// array of [role](https://discord.com/developers/docs/topics/permissions#role-object) object ids
-    pub roles: Vec<String>,
+    pub roles: Vec<Snowflake>,
     /// when the user joined the guild
     pub joined_at: String,
     /// when the user started boosting the guild

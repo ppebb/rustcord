@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_repr::*;
 
-use super::{ConnectedAccountInfo, PayloadEntryList, ReadStateEntry, channel::PrivateChannelEntry, guild::GuildInfo, message::MessageInfo, user::{UserGuildSettingEntry, UserInfo, UserRelationship, UserSettings}};
+use super::{ConnectedAccountInfo, PayloadEntryList, ReadStateEntry, Snowflake, channel::{ChannelTypes, PrivateChannelEntry}, guild::{ClientStatusInfo, GuildInfo, activity::ActivityInfo}, message::MessageInfo, user::{UserGuildSettingEntry, UserInfo, UserRelationship, UserSettings}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GatewayPayload {
@@ -48,6 +48,33 @@ pub enum GatewayPayloadData {
     MessageCreateData {
         #[serde(flatten)]
         message_data: MessageInfo
+    },
+    RelationshipAddData {
+        user: UserInfo,
+        #[serde(rename="type")]
+        relationship_type: u8,
+        should_notify: Option<bool>,
+        nickname: Option<String>,
+        id: Snowflake
+    },
+    PresenceUpdateData {
+        user: UserInfo,
+        status: String,
+        last_modified: u64,
+        client_status: ClientStatusInfo,
+        activities: Vec<ActivityInfo>
+    },
+    ChannelCreateData {
+        #[serde(rename="type")]
+        channel_type: ChannelTypes,
+        recipients: Vec<UserInfo>,
+        last_message_id: Option<Snowflake>,
+        id: Snowflake
+    },
+    MessageAckData {
+        version: u8,
+        message_id: Snowflake,
+        channel_id: Snowflake
     }
 }
 

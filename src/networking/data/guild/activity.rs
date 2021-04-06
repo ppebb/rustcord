@@ -13,7 +13,7 @@ pub struct ActivityInfo {
     /// stream url, is validated when type is 1
     pub url: Option<String>,
     /// unix timestamp of when the activity was added to the user's session
-    pub created_at: i32,
+    pub created_at: u64,
     /// unix timestamps for start and/or end of the game
     pub timestamps: ActivityTimestamps,
     /// application id for the game
@@ -33,16 +33,17 @@ pub struct ActivityInfo {
     /// whether or not the activity is an instanced game session
     pub instance: Option<bool>,
     /// activity flags ORd together, describes what the payload includes
-    pub flags: Option<ActivityFlags>
+    pub flags: Option<ActivityFlags>,
+    pub id: Option<String>,
 }
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-timestamps
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityTimestamps {
     /// unix time (in milliseconds) of when the activity started
-    pub start: Option<u32>,
+    pub start: Option<u64>,
     /// unix time (in milliseconds) of when the activity ends
-    pub end: Option<u32>
+    pub end: Option<u64>
 }
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-emoji

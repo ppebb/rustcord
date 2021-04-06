@@ -14,10 +14,13 @@ fn main() {
     wind.make_resizable(true);
     wind.end();
     wind.show();
-    
+
     but1.set_callback(move || {
-        chat_messages.add(&chat_input.value());
-        chat_input.set_value("");
+        // Only add the value if the input isn't empty
+        if !chat_input.value().is_empty() {
+            chat_messages.add(&chat_input.value());
+            chat_input.set_value("");
+        }
     });
     app.run().unwrap();
 

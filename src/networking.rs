@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use data::gateway::GatewayPayload;
+use data::{gateway::{GatewayPayload, GatewayPayloadData}};
 use futures_channel;
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
@@ -44,7 +44,8 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
 pub async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
     tokio::time::sleep(Duration::new(1, 0)).await;
     // TODO: Make an identifier struct with a fn default(token: String)
-    let data = r#"{"op": 2, "d": {"token": "ODI4Njg1NTAxMzgzODM1NzA4.YGtUmQ.UFFoUyw7zNpOdsR0aOFkIWPLVkY", "presence": {"status": "online", "since": 0, "activities": [], "afk": false}, "capabilities": 61, "properties": {"os": "Mystery", "browser": "Mystery", "browser_user_agent": "Why do you care"}, "client_state": {"guild_hashes": {}, "highest_last_message_id": "0", "read_state_version": 0, "user_guild_settings_version": -1}}}"#;
+    let payload_data = GatewayPayloadData::get_identify_message(&"No stealy".to_string());
+    let data = serde_json::to_string(&payload_data).unwrap();
     tx.unbounded_send(Message::text(data)).unwrap();
     println!("[send_identify] Sent identify message");
 }

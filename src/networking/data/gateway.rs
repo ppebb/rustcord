@@ -39,7 +39,19 @@ pub enum GatewayPayloadData {
         connected_accounts: Vec<ConnectedAccountInfo>,
         analytics_token: String,
         _trace: Value // TODO
+    },
+    IdentifyMessageData {
+        token: String,
+        capabilities: i32,
+        properties: IdentifyProperties
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IdentifyProperties {
+    pub os: String,
+    pub browser: String,
+    pub browser_user_agent: String
 }
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq)]

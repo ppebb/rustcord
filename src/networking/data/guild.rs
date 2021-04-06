@@ -5,7 +5,7 @@ use serde_repr::*;
 use self::activity::ActivityInfo;
 use super::{GuildHashInfo, MuteConfig, Snowflake, channel::ChannelInfo, user::UserInfo};
 
-mod activity;
+pub mod activity;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GuildInfo {

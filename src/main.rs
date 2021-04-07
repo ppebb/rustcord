@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use fltk::{app, window::*};
+use fltk::{app, window::*, frame::*, browser::*, button::*, input::*};
 use futures_channel;
 use tokio::{self, sync::mpsc};
 use networking::{connect_to_discord, data::gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, send_identify, send_message, start_heartbeat};
@@ -27,11 +27,24 @@ async fn main() {
     let client = Arc::new(client);
 
     let app = app::App::default();
-    let mut wind = Window::new(100, 100, 400, 300, "Rustcord");
+    let mut wind = Window::new(100, 100, 1000, 500, "Rustcord");
+    let servers = Frame::default().with_size(50, 500).with_label("servers").set_frame(FrameType::EngravedBox);
+    let top_bar = Frame::default().with_pos(50, 0).with_size(950, 50).with_label("top bar").set_frame(FrameType::EngravedBox);
+    let channels = Frame::default().with_pos(50, 50).with_size(200, 400).with_label("channels").set_frame(FrameType::EngravedBox);
+    let info = Frame::default().with_pos(50, 450).with_size(200, 50).with_label("info").set_frame(FrameType::EngravedBox);
+    let members = Frame::default().with_pos(750, 50).with_size(250, 450).with_label("members").set_frame(FrameType::EngravedBox);
+    let mut chat_messages = HoldBrowser::default().with_size(500, 400).with_pos(250, 50);
+    let mut but1 = ReturnButton::default().with_pos(700, 450).with_size(50, 50).with_label("send");
+    let mut chat_input = Input::default().with_pos(250, 450).with_size(450, 50);
     wind.make_resizable(true);
     wind.end();
     wind.show();
-
+    
+    but1.set_callback(move || {
+        chat_messages.add(&chat_input.value());
+        chat_input.set_value("");
+    });
+    
     // Make a mpsc for sending messages and another for receiving messages
     let (write_tx, write_rx) = futures_channel::mpsc::unbounded::<Message>();
     let (read_tx, mut read_rx) = mpsc::channel::<GatewayPayload>(32);
@@ -71,9 +84,10 @@ async fn main() {
     });
 
     tokio::spawn(send_identify(token.clone(), write_tx.clone()));
-
     tokio::spawn(connect(write_rx, read_tx.clone()));
+    
     app.run().unwrap();
+
 }
 
 async fn connect(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {

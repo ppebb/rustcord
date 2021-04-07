@@ -41,9 +41,9 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
     }
 }
 
-pub async fn send_identify(tx: futures_channel::mpsc::UnboundedSender<Message>) {
+pub async fn send_identify(token: String, tx: futures_channel::mpsc::UnboundedSender<Message>) {
     tokio::time::sleep(Duration::new(1, 0)).await;
-    let payload_data = sendable::create_identify_message(&"ODI4NzgwNDkzMzg2MDIyOTQy.YGukPQ.U1-xZ-bxk5uhnwkVPrBUVMUMLvM".to_string());
+    let payload_data = sendable::create_identify_message(&token);
     let data = serde_json::to_string(&payload_data).unwrap();
     tx.unbounded_send(Message::text(data)).unwrap();
     println!("[send_identify] Sent identify message");
@@ -85,4 +85,18 @@ pub async fn start_heartbeat(delay: u32, write_tx: futures_channel::mpsc::Unboun
         let heartbeat_json = serde_json::to_string(&create_heartbeat_message()).unwrap();
         write_tx.unbounded_send(Message::text(heartbeat_json)).unwrap();
     }
+}
+
+pub async fn send_message(client: &reqwest::Client, content: String, channel_id: String) {
+    let url = format!("https://discord.com/api/v8/channels/{}/messages", channel_id);
+    let json = sendable::create_send_message_json(&content);
+
+    // create the post request and send it
+    let res = client  
+        .post(&url)
+        .json(&json)
+        .send()
+        .await.unwrap();
+
+    println!("[send_message] Sent message to {} with response: {:?}", url, res);
 }

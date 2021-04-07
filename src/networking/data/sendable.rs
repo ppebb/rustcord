@@ -25,3 +25,9 @@ pub fn create_heartbeat_message() -> GatewayPayload {
         d: None
     }
 }
+
+pub fn create_send_message_json(content: &String) -> serde_json::Value {
+    serde_json::json!({
+        "content": content
+    })
+}

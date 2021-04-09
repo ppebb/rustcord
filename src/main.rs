@@ -7,6 +7,7 @@ use futures_channel;
 use tokio::{self, sync::mpsc};
 use networking::{connect_to_discord, data::gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, send_identify, send_message, start_heartbeat};
 use tokio_tungstenite::tungstenite::Message;
+use webview_official::{SizeHint, WebviewBuilder};
 
 #[macro_use]
 extern crate bitflags;
@@ -83,11 +84,48 @@ async fn main() {
         }
     });
 
+    const JAVASCRIPT: &str = r#"
+    // Shamelessly yoinked from https://github.com/diamondburned/discordlogin/blob/master/main.go
+    // Clear local storage
+	localStorage.clear()
+	
+    let setRequestHeader = XMLHttpRequest.prototype.setRequestHeader
+	let isAuth = (key, value) => {
+		return key == "Authorization" && value && !value.startsWith("Bearer")
+	}
+
+	XMLHttpRequest.prototype.setRequestHeader = function() {
+		if (isAuth(arguments[0], arguments[1])) {
+			receivedToken(arguments[1])
+			window.location = ""
+			return
+        }
+
+		setRequestHeader.apply(this, arguments)
+	}
+    "#;
+
+    let mut _login_window = WebviewBuilder::new()
+        .debug(false)
+        .title("Discord Login")
+        .width(1000)
+        .height(800)
+        .url("https://discord.com/login")
+        .init(JAVASCRIPT)
+        .build();
+
+    let mut window = _login_window.clone();
+    _login_window.bind("recievedToken", move |token, _req| {
+        print!("{}", &token);
+        window.terminate();
+    });
+
+    _login_window.run();
+
     tokio::spawn(send_identify(token.clone(), write_tx.clone()));
     tokio::spawn(connect(write_rx, read_tx.clone()));
     
     app.run().unwrap();
-
 }
 
 async fn connect(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {

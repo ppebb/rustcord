@@ -842,6 +842,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "url",
+ "webview_official",
 ]
 
 [[package]]
@@ -1322,6 +1323,23 @@ checksum = "a905d57e488fec8861446d3393670fb50d27a262344013181c2cdf9fff5481be"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "webview-official-sys"
+version = "0.1.2"
+source = "git+https://github.com/webview/webview_rust/?branch=dev#e995cbc56996f9519a981c2fafd4e11b8ad13b6a"
+dependencies = [
+ "cc",
+ "pkg-config",
+]
+
+[[package]]
+name = "webview_official"
+version = "0.2.0"
+source = "git+https://github.com/webview/webview_rust/?branch=dev#e995cbc56996f9519a981c2fafd4e11b8ad13b6a"
+dependencies = [
+ "webview-official-sys",
 ]
 
 [[package]]

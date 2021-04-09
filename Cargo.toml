@@ -1,13 +1,19 @@
 [package]
 name = "rustcord"
 version = "0.1.0"
-authors = ["pollen__"]
+authors = ["pollen__", "Chik3r"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies.fltk]
+[dependencies]
 fltk = "^0.16"
-
-[dependencies.reqwest]
-reqwest = "0.9.18"
+reqwest = { version = "0.11", features = ["json"] }
+tokio-tungstenite = { version = "0.14.0", features = ["native-tls"] }
+futures = "0.3"
+tokio = { version = "1", features = ["full", "time"] }
+url = "2.2.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_repr = "0.1"
+bitflags = "1.2.1"
+futures-util = "0.3.13"
+futures-channel = "0.3.13"

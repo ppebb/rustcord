@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use data::{gateway::GatewayPayload, sendable::{self, create_heartbeat_message}};
+use data::{gateway::GatewayPayload};
 use futures_channel;
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
@@ -12,9 +10,8 @@ async fn connect_to_websocket(wss_url: &str) -> (WebSocketStream<MaybeTlsStream<
     // Convert the input url from a string to a Url
     let url = url::Url::parse(wss_url).unwrap();
 
-    println!("[connect_to_websocket] Connecting to: {}", url);
+    debug!("Connecting to: {}", url);
     let (ws_stream, response) = connect_async(url).await.expect("Failed to connect");
-    println!("[connect_to_websocket] Handshake completed");
 
     (ws_stream, response)
 }
@@ -24,29 +21,24 @@ async fn receive_message(message: Result<Message, tungstenite::Error>, read_tx: 
     let message = message.unwrap();
     let text = message.into_text().unwrap();
 
-    println!("[receive_message] Received a message from the gateway");
+    trace!("Received a message from the gateway");
 
     // Try to parse the message
     let data: Result<GatewayPayload, serde_json::Error> = serde_json::from_str(text.as_str());
     match data { // Do stuff with the data from the message
         Ok(payload) => {
-            println!("[receive_message] Successfully parsed the payload");
+            trace!("Successfully parsed the payload");
             let r = read_tx.try_send(payload);
             if let Err(e) = r {
-                println!("[receive_message] Failed to send the data to read_tx: {:?}", e);
+                error!("Failed to send the data to read_tx: {:?}", e);
             }
             // TODO: Do stuff with the payload
         },
-        Err(error) => println!("[receive_message] ERROR!\n\t--> Failed to parse the payload: {}\n\t--> Input is: {}", error, text)
+        Err(error) => {
+            warn!("Failed to parse the payload: {}", error);
+            warn!("Input is: {}", text);
+        }
     }
-}
-
-pub async fn send_identify(token: String, tx: futures_channel::mpsc::UnboundedSender<Message>) {
-    tokio::time::sleep(Duration::new(1, 0)).await;
-    let payload_data = sendable::create_identify_message(&token);
-    let data = serde_json::to_string(&payload_data).unwrap();
-    tx.unbounded_send(Message::text(data)).unwrap();
-    println!("[send_identify] Sent identify message");
 }
 
 /// `write_rx` receives messages to be sent to the websocket.
@@ -54,7 +46,7 @@ pub async fn send_identify(token: String, tx: futures_channel::mpsc::UnboundedSe
 pub async fn connect_to_discord(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {
     let (ws_stream, response) = connect_to_websocket("wss://gateway.discord.gg/?encoding=json&v=8").await;
     if response.status() != StatusCode::SWITCHING_PROTOCOLS {
-        println!("[connect_to_discord] Failed to connect to the websocket! {:?}", response);
+        error!("Failed to connect to the websocket! {:?}", response);
         return;
     }
 
@@ -73,30 +65,5 @@ pub async fn connect_to_discord(write_rx: futures_channel::mpsc::UnboundedReceiv
     pin_mut!(read_thread, write_thread);
     // wait for any of the threads to finish
     future::select(read_thread, write_thread).await;
-    println!("[connect_to_discord] Websocket has been closed");
-}
-
-pub async fn start_heartbeat(delay: u32, write_tx: futures_channel::mpsc::UnboundedSender<Message>) {
-    println!("[start_heartbeat] Started heartbeat thread");
-    let mut interval = tokio::time::interval(Duration::from_millis(delay as u64));
-    loop {
-        interval.tick().await;
-        println!("[start_heartbeat] Sending heartbeat!");
-        let heartbeat_json = serde_json::to_string(&create_heartbeat_message()).unwrap();
-        write_tx.unbounded_send(Message::text(heartbeat_json)).unwrap();
-    }
-}
-
-pub async fn send_message(client: &reqwest::Client, content: String, channel_id: String) {
-    let url = format!("https://discord.com/api/v8/channels/{}/messages", channel_id);
-    let json = sendable::create_send_message_json(&content);
-
-    // create the post request and send it
-    let res = client  
-        .post(&url)
-        .json(&json)
-        .send()
-        .await.unwrap();
-
-    println!("[send_message] Sent message to {} with response: {:?}", url, res);
+    debug!("Websocket has been closed");
 }

@@ -5,16 +5,21 @@ use std::sync::Arc;
 use fltk::{app, window::*, frame::*, browser::*, button::*, input::*};
 use futures_channel;
 use tokio::{self, sync::mpsc};
-use networking::{connect_to_discord, data::gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, send_identify, send_message, start_heartbeat};
+use networking::{connect_to_discord, data::{gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, sendable}};
 use tokio_tungstenite::tungstenite::Message;
 
 #[macro_use]
 extern crate bitflags;
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
 
 mod networking;
 
 #[tokio::main]
 async fn main() {
+    pretty_env_logger::init();
+
     let token = String::from("Hidden from git");
     
     // Build the client with default headers containing the auth token
@@ -48,7 +53,7 @@ async fn main() {
         }
     });
     
-    // Make a mpsc for sending messages and another for receiving messages
+    // Make a mpsc for sending messages to discord and another for receiving messages from discord
     let (write_tx, write_rx) = futures_channel::mpsc::unbounded::<Message>();
     let (read_tx, mut read_rx) = mpsc::channel::<GatewayPayload>(32);
 
@@ -58,12 +63,12 @@ async fn main() {
             let client = Arc::clone(&client);
             let message = read_rx.recv().await;
             if let Some(payload) = message {
-                println!("[main: receive loop] Received {:?}", payload);
+                debug!("Received {:?}", payload);
                 match payload.op {
                     GatewayOpCodes::Hello => {
                         if let Some(data) = payload.d {
                             if let GatewayPayloadData::HelloData { heartbeat_interval, .. } = data {
-                                tokio::spawn(start_heartbeat(heartbeat_interval, write_tx_clone.clone()));
+                                tokio::spawn(sendable::start_heartbeat(heartbeat_interval, write_tx_clone.clone()));
                             }
                         }
                     },
@@ -73,7 +78,7 @@ async fn main() {
                                 GatewayPayloadData::PresenceUpdateData {activities, ..} => {
                                     // Send a message containing the activities of the user when their presence is updated
                                     tokio::spawn(async move {
-                                        send_message(&client, format!("{:?}", activities.first().unwrap().name), "829119138475671602".to_string()).await;
+                                        sendable::send_message(&client, format!("{:?}", activities.first().unwrap().name), "829119138475671602".to_string()).await;
                                     });
                                 },
                                 _ => {}
@@ -86,7 +91,7 @@ async fn main() {
         }
     });
 
-    tokio::spawn(send_identify(token.clone(), write_tx.clone()));
+    tokio::spawn(sendable::send_identify(token.clone(), write_tx.clone()));
     tokio::spawn(connect(write_rx, read_tx.clone()));
     
     app.run().unwrap();

@@ -12,6 +12,7 @@ pub mod user;
 pub mod guild;
 pub mod channel;
 pub mod sendable;
+pub mod receive;
 pub mod message;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

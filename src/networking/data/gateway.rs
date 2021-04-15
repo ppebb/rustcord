@@ -4,11 +4,16 @@ use serde_repr::*;
 
 use super::{ConnectedAccountInfo, PayloadEntryList, ReadStateEntry, Snowflake, channel::{ChannelTypes, PrivateChannelEntry}, guild::{ClientStatusInfo, GuildInfo, activity::ActivityInfo}, message::MessageInfo, user::{UserGuildSettingEntry, UserInfo, UserRelationship, UserSettings}};
 
+/// https://discord.com/developers/docs/topics/gateway
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GatewayPayload {
+    /// opcode for the payload
     pub op: GatewayOpCodes,
+    /// event data
     pub d: Option<GatewayPayloadData>,
+    /// sequence number, used for resuming sessions and heartbeats
     pub s: Option<i32>,
+    /// the event name for this payload
     pub t: Option<String>
 }
 

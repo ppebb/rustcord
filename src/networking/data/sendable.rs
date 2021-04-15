@@ -51,7 +51,7 @@ pub async fn start_heartbeat(delay: u32, write_tx: futures_channel::mpsc::Unboun
     }
 }
 
-pub async fn send_message(client: &reqwest::Client, content: String, channel_id: String) {
+pub async fn send_message(client: reqwest::Client, content: String, channel_id: String) {
     let url = format!("https://discord.com/api/v8/channels/{}/messages", channel_id);
     let json = serde_json::json!({
         "content": &content

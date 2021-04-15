@@ -1,11 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::Arc;
-
 use fltk::{app, window::*, frame::*, browser::*, button::*, input::*};
 use futures_channel;
 use tokio::{self, sync::mpsc};
-use networking::{connect_to_discord, data::{gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, sendable}};
+use networking::{connect_to_discord, data::{gateway::GatewayPayload, receive::handle_messages, sendable}};
 use tokio_tungstenite::tungstenite::Message;
 
 #[macro_use]
@@ -28,8 +26,6 @@ async fn main() {
     let client = reqwest::Client::builder()
         .default_headers(headers)
         .build().unwrap();
-
-    let client = Arc::new(client);
 
     let app = app::App::default();
     let mut wind = Window::new(100, 100, 1000, 500, "Rustcord");
@@ -54,48 +50,14 @@ async fn main() {
     });
     
     // Make a mpsc for sending messages to discord and another for receiving messages from discord
-    let (write_tx, write_rx) = futures_channel::mpsc::unbounded::<Message>();
-    let (read_tx, mut read_rx) = mpsc::channel::<GatewayPayload>(32);
-
-    let write_tx_clone = write_tx.clone();
-    tokio::spawn(async move {
-        loop {
-            let client = Arc::clone(&client);
-            let message = read_rx.recv().await;
-            if let Some(payload) = message {
-                debug!("Received {:?}", payload);
-                match payload.op {
-                    GatewayOpCodes::Hello => {
-                        if let Some(data) = payload.d {
-                            if let GatewayPayloadData::HelloData { heartbeat_interval, .. } = data {
-                                tokio::spawn(sendable::start_heartbeat(heartbeat_interval, write_tx_clone.clone()));
-                            }
-                        }
-                    },
-                    GatewayOpCodes::Dispatch => {
-                        if let Some(data) = payload.d {
-                            match data {
-                                GatewayPayloadData::PresenceUpdateData {activities, ..} => {
-                                    // Send a message containing the activities of the user when their presence is updated
-                                    tokio::spawn(async move {
-                                        sendable::send_message(&client, format!("{:?}", activities.first().unwrap().name), "829119138475671602".to_string()).await;
-                                    });
-                                },
-                                _ => {}
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-    });
-
-    tokio::spawn(sendable::send_identify(token.clone(), write_tx.clone()));
-    tokio::spawn(connect(write_rx, read_tx.clone()));
+    let (send_tx, send_rx) = futures_channel::mpsc::unbounded::<Message>();
+    let (receive_tx, receive_rx) = mpsc::channel::<GatewayPayload>(32);
+    
+    tokio::spawn(connect(send_rx, receive_tx.clone())); // Spawn a thread to connect to the websocket
+    tokio::spawn(handle_messages(client.clone(), receive_rx, send_tx.clone())); // Spawn a thread to handle the messages received from the websocket
+    tokio::spawn(sendable::send_identify(token.clone(), send_tx.clone())); // Spawn a thread to send an identify message to the websocket
     
     app.run().unwrap();
-
 }
 
 async fn connect(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {

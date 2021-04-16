@@ -3,13 +3,15 @@ use tokio_tungstenite::tungstenite::Message;
 
 use super::gateway::{GatewayPayload, GatewayOpCodes, GatewayPayloadData};
 use super::sendable;
+use crate::ui;
 
 mod dispatch;
 
-pub async fn handle_messages(client: reqwest::Client, mut wss_receive_rx: mpsc::Receiver<GatewayPayload>, wss_write_tx: futures_channel::mpsc::UnboundedSender<Message>) {
+pub async fn handle_messages(client: reqwest::Client, mut wss_receive_rx: mpsc::Receiver<GatewayPayload>, wss_write_tx: futures_channel::mpsc::UnboundedSender<Message>, ui: ui::RustcordUI) {
     loop {
         let client = client.clone();
         let wss_write_tx = wss_write_tx.clone();
+        let ui = ui.clone();
 
         // Wait until a message is received from the wss receiver
         // If None is returned, stop the message handling loop
@@ -29,7 +31,7 @@ pub async fn handle_messages(client: reqwest::Client, mut wss_receive_rx: mpsc::
                 handle_hello(message, wss_write_tx).await;
             },
             GatewayOpCodes::Dispatch => {
-                handle_dispatch(message, wss_write_tx, client).await;
+                handle_dispatch(message, wss_write_tx, client, ui).await;
             }
             _ => {}
         }
@@ -61,7 +63,7 @@ async fn handle_hello(message: GatewayPayload, wss_write_tx: futures_channel::mp
     tokio::spawn(sendable::start_heartbeat(heartbeat_interval, wss_write_tx.clone()));
 }
 
-async fn handle_dispatch(message: GatewayPayload, wss_write_tx: futures_channel::mpsc::UnboundedSender<Message>, client: reqwest::Client) {
+async fn handle_dispatch(message: GatewayPayload, wss_write_tx: futures_channel::mpsc::UnboundedSender<Message>, client: reqwest::Client, ui: ui::RustcordUI) {
     // Get the data from the message
     // If there's no data, print a warn and return
     let data = match message.d {
@@ -75,6 +77,7 @@ async fn handle_dispatch(message: GatewayPayload, wss_write_tx: futures_channel:
     // Match the variant of data (ignore the values) and call a function to handle the variant
     match data {
         GatewayPayloadData::PresenceUpdateData { .. } => dispatch::handle_presence_update(data, client).await,
+        GatewayPayloadData::MessageCreateData { .. } => dispatch::handle_message_create(data, ui).await,
         _ => {}
     };
 }

@@ -65,6 +65,7 @@ pub async fn send_message(client: reqwest::Client, content: String, channel_id: 
         .await.unwrap();
 
     trace!("Sent message to {} with response: {:?}", url, res);
+    trace!("Content is: {}", json);
 }
 
 pub async fn send_identify(token: String, tx: futures_channel::mpsc::UnboundedSender<Message>) {

@@ -28,7 +28,8 @@ async fn main() {
         .default_headers(headers)
         .build().unwrap();
 
-    let ui = ui::RustcordUI::new();
+    let mut ui = ui::RustcordUI::new();
+    ui.set_send_callback_to_discord(client.clone()); // Makes the send button send a message to discord instead of displaying a message
 
     // Add a test item to the ui
     let mut b = ui.clone();
@@ -39,9 +40,10 @@ async fn main() {
     let (receive_tx, receive_rx) = mpsc::channel::<GatewayPayload>(32);
     
     tokio::spawn(connect(send_rx, receive_tx.clone())); // Spawn a thread to connect to the websocket
-    tokio::spawn(handle_messages(client.clone(), receive_rx, send_tx.clone())); // Spawn a thread to handle the messages received from the websocket
+    tokio::spawn(handle_messages(client.clone(), receive_rx, send_tx.clone(), ui.clone())); // Spawn a thread to handle the messages received from the websocket
     tokio::spawn(sendable::send_identify(token.clone(), send_tx.clone())); // Spawn a thread to send an identify message to the websocket
     
+    // Start the ui app
     ui.app.run().unwrap();
 }
 

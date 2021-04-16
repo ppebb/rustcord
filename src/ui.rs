@@ -58,4 +58,23 @@ impl RustcordUI {
     pub fn new() -> Self {
         Default::default()
     }
+
+    /// Changes the callback of self.chat_send_button to send the content to a discord message.
+    /// Will only show the message after the websocket acknowledges it exists
+    pub fn set_send_callback_to_discord(&mut self, client: reqwest::Client) {
+        let self_c = self.clone();
+        self.chat_send_button.set_callback(move || {
+            let client = client.clone();
+            // Only add the value if the input isn't empty
+            if !self_c.chat_text_input.value().is_empty() {
+                // Clone the content of the input so there are no race conditions
+                let content = self_c.chat_text_input.value().clone();
+                tokio::spawn(async move {
+                    // TODO: Change the channel id to the selected channel
+                    crate::sendable::send_message(client, content, "829119138475671602".to_string()).await;
+                });
+                self_c.chat_text_input.set_value("");
+            }
+        });
+    }
 }

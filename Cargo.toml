@@ -18,3 +18,4 @@ bitflags = "1.2.1"
 futures-util = "0.3.13"
 futures-channel = "0.3.13"
 webview_official = { git = "https://github.com/webview/webview_rust/", branch = "dev" }
+directories = "3.0.1"

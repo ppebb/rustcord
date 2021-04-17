@@ -1,13 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io::Write;
 use std::sync::Arc;
 
+use directories::BaseDirs;
 use fltk::{app, window::*, frame::*, browser::*, button::*, input::*};
 use futures_channel;
-use tokio::{self, sync::mpsc};
+use tokio::{self, fs::create_dir_all, sync::mpsc};
 use networking::{connect_to_discord, data::gateway::{GatewayOpCodes, GatewayPayload, GatewayPayloadData}, send_identify, send_message, start_heartbeat};
 use tokio_tungstenite::tungstenite::Message;
-use webview_official::{SizeHint, WebviewBuilder};
+use webview_official::WebviewBuilder;
 
 #[macro_use]
 extern crate bitflags;
@@ -84,6 +86,15 @@ async fn main() {
         }
     });
 
+    login();
+
+    tokio::spawn(send_identify(token.clone(), write_tx.clone()));
+    tokio::spawn(connect(write_rx, read_tx.clone()));
+    
+    app.run().unwrap();
+}
+
+fn login() {
     const JAVASCRIPT: &str = r#"
     // Shamelessly yoinked from https://github.com/diamondburned/discordlogin/blob/master/main.go
     // Clear local storage
@@ -105,7 +116,7 @@ async fn main() {
 	}
     "#;
 
-    let mut _login_window = WebviewBuilder::new()
+    let mut login_window = WebviewBuilder::new()
         .debug(false)
         .title("Discord Login")
         .width(1000)
@@ -114,18 +125,31 @@ async fn main() {
         .init(JAVASCRIPT)
         .build();
 
-    let mut window = _login_window.clone();
-    _login_window.bind("recievedToken", move |token, _req| {
-        print!("{}", &token);
+    let mut window = login_window.clone();
+    login_window.bind("receivedToken", move |_req, _token| {
+        if let Some(base_dirs) = BaseDirs::new() {
+            let data_local_dir_str = match base_dirs.data_local_dir().to_str() {
+                Some(value) => value.to_string(),
+                None => String::from("")
+            };
+
+            if data_local_dir_str != "" {
+                let full_path_string = data_local_dir_str + "/rustcord/token.txt";
+                let full_path = std::path::Path::new(full_path_string.as_str());
+                let full_path_parent = full_path.parent().unwrap();
+                std::fs::create_dir_all(full_path_parent);
+                let mut token_file = std::fs::File::create(full_path).expect(format!("Unable to create token file at {}", full_path.to_string_lossy()).as_str());
+                token_file.write_all(_token.as_bytes()).expect(format!("Unable to write to token file at {}", full_path.to_string_lossy()).as_str());
+            }
+            else {
+                println!("Unable to locate data_local_dir!");
+            }
+            
+        }
         window.terminate();
     });
 
-    _login_window.run();
-
-    tokio::spawn(send_identify(token.clone(), write_tx.clone()));
-    tokio::spawn(connect(write_rx, read_tx.clone()));
-    
-    app.run().unwrap();
+    login_window.run();
 }
 
 async fn connect(write_rx: futures_channel::mpsc::UnboundedReceiver<Message>, read_tx: mpsc::Sender<GatewayPayload>) {
